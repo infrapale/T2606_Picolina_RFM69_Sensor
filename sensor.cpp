@@ -26,7 +26,7 @@ typedef struct
 } sensor_ctrl_st;
 
 
-extern TwoWire *Wirep;
+TwoWire *Wirep;
 extern main_ctrl_st main_ctrl;
 
 // function prototype

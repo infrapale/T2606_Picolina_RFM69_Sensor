@@ -34,8 +34,6 @@ void print_debug_task(void);
 atask_st modem_handle              = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_task};
 atask_st debug_th                  = {"Debug Task     ", 2000,    0,     0,  255,    0,  1,  print_debug_task };
 
-TwoWire *Wirep;
-
 
 void setup() {
     io_initialize();
@@ -44,11 +42,7 @@ void setup() {
     Serial.begin(115200);
     Serial1.begin(9600);
     delay(2000);
-    Wirep = &Wire;
     //while (!Serial); 
-
-    Wire.setSDA(PIN_I2C0_SDA);
-    Wire.setSCL(PIN_I2C0_SCL);
 
     atask_initialize();
     sensor_initialize();
