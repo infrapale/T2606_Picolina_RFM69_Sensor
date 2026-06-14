@@ -37,16 +37,16 @@ atask_st debug_th                  = {"Debug Task     ", 2000,    0,     0,  255
 
 void setup() {
     io_initialize();
-    Serial1.setTX(PIN_TX0);   
-    Serial1.setRX(PIN_RX0);
+    Serial1.setTX(PIN_TX1);   
+    Serial1.setRX(PIN_RX1);
     Serial.begin(115200);
     Serial1.begin(9600);
     delay(2000);
     //while (!Serial); 
 
     atask_initialize();
-    sensor_initialize();
     r69_initialize(Serial1);
+    sensor_initialize();
 
 
 

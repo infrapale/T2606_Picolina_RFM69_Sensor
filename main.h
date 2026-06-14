@@ -1,7 +1,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 #include "WString.h"
-#define   __APP__ ((char*)"T2605_picolina_2x5btn")
+#define   __APP__ ((char*)"T2606_Picolina_RFM69_Sensor")
 
 #define DEBUG_PRINT 
 #define SEND_TEST_MSG 

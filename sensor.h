@@ -33,6 +33,16 @@ typedef enum
     SENSOR_STATUS_READ_ERROR
 } sensor_status_et;
 
+typedef enum 
+{
+    SENSOR_SHOW_BM_NONE     = 0b00000000,
+    SENSOR_SHOW_BM_TEMP     = 0b00000001,
+    SENSOR_SHOW_BM_HUM      = 0b00000010,
+    SENSOR_SHOW_BM_PRESS    = 0b00000100,
+    SENSOR_SHOW_BM_VALUE    = 0b00001000,
+    SENSOR_SHOW_BM_CNTR     = 0b00010000,
+} sensor_show_bm_et;
+
 typedef struct
 {
     char        label[SENSOR_LABEL_LEN];
@@ -40,7 +50,7 @@ typedef struct
     bool        active;
     uint8_t     status;
     bool        updated;
-    bool        show_temperature;
+    uint8_t     show_bm;
     uint16_t    counter;
     uint32_t    next_meas;
     uint32_t    next_send;
