@@ -16,8 +16,6 @@
 typedef struct
 {
     uint8_t task_indx;
-    char butt_val;
-    // butt_status_et butt_status;
     char    buff[64];
     uint16_t duration;
 
@@ -27,7 +25,6 @@ uint8_t key[] = RFM69_KEY;
 
 RH_RF69         rf69(PIN_RFM_CS, PIN_RFM_IRQ);
 Rfm69Modem      rfm69_modem(&rf69,  PIN_RFM_RESET, -1 );
-//modem_data_st   modem_data = {MY_MODULE_TAG, MY_MODULE_ADDR};
 
 extern main_ctrl_st main_ctrl;
 r69_st r69;
@@ -46,12 +43,12 @@ atask_st modem_th              = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_
 void r69_initialize(Stream &s)
 {
     rfm69_modem.initialize(MY_MODULE_TAG, MY_MODULE_ADDR, key);
-    rfm69_modem.set_serial(s);
+    // rfm69_modem.set_serial(s);
     
-    atask_add_new(&modem_th);
-    r69.task_indx =  atask_add_new(&r69_th);
+    // atask_add_new(&modem_th);
+    // r69.task_indx =  atask_add_new(&r69_th);
     
-    rfm69_modem.radiate(__APP__);
+    // rfm69_modem.radiate(__APP__);
 
 }
 

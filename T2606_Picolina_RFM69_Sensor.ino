@@ -9,11 +9,6 @@
 
 ******************************************************************************/
 
-
-
-
-
-
 #include    <Wire.h>
 #include    "main.h"
 #include    "secrets.h"
@@ -37,21 +32,20 @@ atask_st debug_th                  = {"Debug Task     ", 2000,    0,     0,  255
 
 void setup() {
     io_initialize();
-    Serial1.setTX(PIN_TX1);   
-    Serial1.setRX(PIN_RX1);
+    Serial1.setTX(PIN_TX0);   // UART0 == Serial1
+    Serial1.setRX(PIN_RX0);
     Serial.begin(115200);
     Serial1.begin(9600);
     delay(2000);
     //while (!Serial); 
+    Serial.print(__APP__); Serial.print(F(" Compiled: "));
+    Serial.print(__DATE__); Serial.print(" ");
+    Serial.print(__TIME__); Serial.println();
 
     atask_initialize();
     r69_initialize(Serial1);
     sensor_initialize();
-
-
-
 }
-
 
 void loop() {
     atask_run();
