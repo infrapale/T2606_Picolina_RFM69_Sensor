@@ -1,3 +1,4 @@
+#include <SPI.h>
 #include <Arduino.h>
 #include "atask.h"
 #include "main.h"
@@ -50,6 +51,24 @@ void io_task(void);
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st io_task_handle       =   {"I/O Task       ", 100,     0,     0,  255,    0,  1,  io_task };
 
+void io_rfm69_spi0_initialize(void) 
+{
+    SPI.setRX(PIN_RFM_MISO);
+    SPI.setTX(PIN_RFM_MOSI);
+    SPI.setSCK(PIN_RFM_SCK);
+    SPI.setCS(PIN_RFM_CS);
+    pinMode(PIN_RFM_RESET,OUTPUT);
+    digitalWrite(PIN_RFM_RESET,LOW);
+    SPI.begin();
+
+    SPI.beginTransaction(SPISettings(
+        1000000,      // 8 MHz
+        MSBFIRST,
+        SPI_MODE0
+    ));
+}
+
+
 void io_initialize(void)
 {
     analogReadResolution(12);
@@ -58,12 +77,7 @@ void io_initialize(void)
     digitalWrite(PIN_RFM_RESET, HIGH);
     pinMode(PIN_IRQ_A, INPUT);
     pinMode(PIN_IRQ_B, INPUT);
-    // pinMode(PIN_IO_RESET,OUTPUT);
-    // digitalWrite(PIN_IO_RESET,LOW); delay(100);
-    // digitalWrite(PIN_IO_RESET,HIGH); delay(200);
-    // digitalWrite(PIN_IO_RESET,LOW);
-
-
+ 
     io_ctrl.pattern_bit = 0;
     for (uint8_t i = LED_RED; i < LED_NBR_OF; i++)
     {

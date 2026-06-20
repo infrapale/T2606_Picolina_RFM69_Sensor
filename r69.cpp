@@ -2,7 +2,7 @@
 #include    "main.h"
 #include    "secrets.h"
 #include    <RH_RF69.h>
-#include    "Rfm69Modem.h"
+#include    "modem69.h"
 #include    "atask.h"
 #include    "io.h"
 #include    "r69.h"
@@ -12,6 +12,7 @@
 #define MY_MODULE_TAG   'B'
 #define MY_MODULE_ADDR  '1'
 #define ENCRYPTKEY    RFM69_KEY   // defined in secret.h
+#define IO_TICK_INTERVAL    (100)
 
 typedef struct
 {
@@ -24,7 +25,7 @@ typedef struct
 uint8_t key[] = RFM69_KEY;
 
 RH_RF69         rf69(PIN_RFM_CS, PIN_RFM_IRQ);
-Rfm69Modem      rfm69_modem(&rf69,  PIN_RFM_RESET, -1 );
+Modem69         rfm69_modem(&rf69,  PIN_RFM_RESET);
 
 extern main_ctrl_st main_ctrl;
 r69_st r69;
@@ -42,7 +43,11 @@ atask_st modem_th              = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_
 
 void r69_initialize(Stream &s)
 {
-    rfm69_modem.initialize(MY_MODULE_TAG, MY_MODULE_ADDR, key);
+
+    io_rfm69_spi0_initialize();
+    rfm69_modem.set_debug_print(debug_cb_print);
+    rfm69_modem.initialize(key);
+    rfm69_modem.radiate(__APP__);
     // rfm69_modem.set_serial(s);
     
     // atask_add_new(&modem_th);
@@ -51,6 +56,13 @@ void r69_initialize(Stream &s)
     // rfm69_modem.radiate(__APP__);
 
 }
+
+void debug_cb_print(const char *msg)
+{
+    Serial.print("[deb] ");
+    Serial.print(msg);
+}
+
 
 void r69_task(void)
 {

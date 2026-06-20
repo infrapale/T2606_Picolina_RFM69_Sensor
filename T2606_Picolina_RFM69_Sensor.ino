@@ -24,7 +24,8 @@ main_ctrl_st main_ctrl = {
 };
 
 void modem_task(void);
-void print_debug_task(void);
+void print_debug_task(void){ atask_print_status(true); }
+
 
 atask_st modem_handle              = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_task};
 atask_st debug_th                  = {"Debug Task     ", 2000,    0,     0,  255,    0,  1,  print_debug_task };
@@ -56,3 +57,4 @@ void loop() {
     // }
 
 }
+
