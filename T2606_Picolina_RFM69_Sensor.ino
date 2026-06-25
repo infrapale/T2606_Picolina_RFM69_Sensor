@@ -44,7 +44,7 @@ void setup() {
     Serial.print(__TIME__); Serial.println();
 
     atask_initialize();
-    r69_initialize(Serial1);
+    r69_initialize();
     sensor_initialize();
 }
 

@@ -9,8 +9,8 @@
 
 
 
-#define MY_MODULE_TAG   'B'
-#define MY_MODULE_ADDR  '1'
+// #define MY_MODULE_TAG   'B'
+// #define MY_MODULE_ADDR  '1'
 #define ENCRYPTKEY    RFM69_KEY   // defined in secret.h
 #define IO_TICK_INTERVAL    (100)
 
@@ -41,16 +41,15 @@ atask_st r69_th                = {"RFM69 Task     ", 100,0, 0, 255, 0, 1, r69_ta
 atask_st modem_th              = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_task};
 //atask_st modem_th            = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_task};
 
-void r69_initialize(Stream &s)
+void r69_initialize(void)
 {
 
     io_rfm69_spi0_initialize();
     rfm69_modem.set_debug_print(debug_cb_print);
     rfm69_modem.initialize(key);
     rfm69_modem.radiate(__APP__);
-    // rfm69_modem.set_serial(s);
-    
-    // atask_add_new(&modem_th);
+
+    atask_add_new(&modem_th);
     // r69.task_indx =  atask_add_new(&r69_th);
     
     // rfm69_modem.radiate(__APP__);

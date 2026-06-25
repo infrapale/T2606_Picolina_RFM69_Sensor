@@ -16,9 +16,13 @@
 // #include "rfm.h"
 
 #define SEALEVELPRESSURE_HPA (1013.25)
+#define SEND_INTERVAL   (10000)
+#define SEND_BUFF_LEN   (60)
+
 typedef struct
 {
     uint8_t     sensor_indx;
+    char        buff[SEND_BUFF_LEN];
     uint32_t    timeout;
     uint16_t    pir_state;
     uint16_t    pir_cntr;
@@ -163,6 +167,7 @@ void sensor_initialize(void)
                 sensor[sindx].meta.active = true; 
                 Serial.printf("Sensor %s active\n", sensor[sindx].meta.label);
                 sensor[sindx].meta.status = SENSOR_STATUS_OK;
+                sensor[sindx].meta.next_send = millis() + SEND_INTERVAL;
             } else sensor[sindx].meta.status = SENSOR_STATUS_NOT_AVAILABLE;
         }
     }
@@ -385,6 +390,44 @@ void sensor_task(void)
                 sensor_read_values(sensor_ctrl.sensor_indx);
                 sensor[sensor_ctrl.sensor_indx].meta.next_meas = millis() + 10000;
             }
+            sensor_handle.state = 20;
+            break;
+        case 20:
+            if(millis() > sensor[sensor_ctrl.sensor_indx].meta.next_send){
+
+                switch(sensor_ctrl.sensor_indx)
+                {
+                    case SENSOR_TYPE_UNDEFINED:
+                        break;
+                    case SENSOR_TYPE_BMP180:
+                        break;
+                    case SENSOR_TYPE_BMP280:
+                        break;
+                    case SENSOR_TYPE_BME680:
+                        break;
+                    case SENSOR_TYPE_AHT20:
+                        break;
+                    case SENSOR_TYPE_SHT31:
+                        sprintf(sensor_ctrl.buff,
+                            "<S;PIHA1;T;%f;H;%f>",
+                            sensor[sensor_ctrl.sensor_indx].temperature,
+                            sensor[sensor_ctrl.sensor_indx].humidity
+                        );
+                        Serial.println(sensor_ctrl.buff);
+                        break;
+                    case SENSOR_TYPE_DS18B20:
+                        break;
+                    case SENSOR_TYPE_PIR:
+                        break;
+                    case SENSOR_TYPE_VEML7700:
+                        sprintf(sensor_ctrl.buff,
+                            "<S;PIHA1;L;%f>",
+                            sensor[sensor_ctrl.sensor_indx].float_val
+                        );
+                        Serial.println(sensor_ctrl.buff);
+                        break;
+                }
+            }
             sensor_handle.state = 100;
             break;
         case 100:
@@ -434,6 +477,7 @@ void sensor_test_task(void)
             break;
         case 20:
             if (millis() > sensor_ctrl.timeout) sensor_handle.state = 100;
+            
             break;
         case 100:
             if(sensor_ctrl.sensor_indx < NBR_TEST_SENSOR-1) sensor_ctrl.sensor_indx++;
