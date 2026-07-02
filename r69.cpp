@@ -6,19 +6,23 @@
 #include    "atask.h"
 #include    "io.h"
 #include    "r69.h"
+#include    "sensor.h"
 
 
 
-// #define MY_MODULE_TAG   'B'
-// #define MY_MODULE_ADDR  '1'
-#define ENCRYPTKEY    RFM69_KEY   // defined in secret.h
+
+#define ENCRYPTKEY          RFM69_KEY   // defined in secret.h
 #define IO_TICK_INTERVAL    (100)
+#define MIN_SEND_INTERVAL   (2000)
+
 
 typedef struct
 {
-    uint8_t task_indx;
-    char    buff[64];
-    uint16_t duration;
+    uint8_t     task_indx;
+    char        buff[R69_MSG_SIZE];
+    bool        send_avail;
+    uint16_t    duration;
+    uint16_t    not_send_before;
 
 } r69_st;
 
@@ -28,7 +32,7 @@ RH_RF69         rf69(PIN_RFM_CS, PIN_RFM_IRQ);
 Modem69         rfm69_modem(&rf69,  PIN_RFM_RESET);
 
 extern main_ctrl_st main_ctrl;
-r69_st r69;
+r69_st r69 = {0};
 
 void modem_task(void)
 {
@@ -45,12 +49,13 @@ void r69_initialize(void)
 {
 
     io_rfm69_spi0_initialize();
+    r69.not_send_before = millis() + MIN_SEND_INTERVAL;
     rfm69_modem.set_debug_print(debug_cb_print);
     rfm69_modem.initialize(key);
     rfm69_modem.radiate(__APP__);
 
     atask_add_new(&modem_th);
-    // r69.task_indx =  atask_add_new(&r69_th);
+    r69.task_indx =  atask_add_new(&r69_th);
     
     // rfm69_modem.radiate(__APP__);
 
@@ -62,74 +67,47 @@ void debug_cb_print(const char *msg)
     Serial.print(msg);
 }
 
+void r69_send(char *buff)
+{
+    memcpy(r69.buff, buff, R69_MSG_SIZE);
+    r69.send_avail = true;
+}
+
+bool r69_ready_to_send(void)
+{
+    return !r69.send_avail;
+}
+
+
+// sensor_node_et sensor_node_send(void)
+// SENSOR_NODE_UNDEFINED
 
 void r69_task(void)
 {
-    // switch(r69_th.state)
-    // {
-    //     case 0:
-    //         r69_th.state = 10;
-    //         break;
+ 
+    switch(r69_th.state)
+    {
+        case 0:
+            r69_th.state = 10;
+            break;
+        case 10:
+            if(r69.send_avail) r69_th.state = 20;
+            break;
+        case 20:
+            rfm69_modem.radiate(r69.buff);
+            r69.not_send_before = millis() + MIN_SEND_INTERVAL;
+            r69_th.state = 30;
+            break;
+        case 30:
+            if(millis() > r69.not_send_before){
+                r69_th.state = 10;
+                r69.send_avail = false;
+            }
+            break;
+        case 40:
+            r69_th.state = 10;
+            break;
 
-    //     case 10:
-    //         // r69.butt_val = butt_read(&r69.butt_status);
-    //         if(r69.butt_val != '.'){
-    //             // Serial.printf("%c-%d\n", r69.butt_val, r69.butt_status);
-    //             r69_th.state = 20;
-    //         }
-    //         break;   
-    //     case 20:
-    //         switch(r69.butt_val)
-    //         {
-    //             case '0':
-    //                 r69.duration = 0;
-    //                 io_led_flash(LED_YELLOW, BLINK_OFF, 1);
-    //                 break;
-    //             case '1':
-    //                 r69.duration = 1;
-    //                 break;
-    //             case '2':    
-    //                 r69.duration = 1800;
-    //                 break;
-    //             case '3':    
-    //                 r69.duration = 3600;
-    //                 break;
-    //             case '4':    
-    //                 r69.duration = 7200;
-    //                 break;
-    //             default:
-    //                 break;
-    //         }
-    //         switch(r69.butt_val)
-    //         {
-    //             case '0':
-    //             case '1':
-    //             case '2':    
-    //             case '3':    
-    //             case '4':    
-    //                 sprintf(r69.buff,"<R;RANTA;%s;PUMP;%d>", main_ctrl.my_addr, r69.duration);
-    //                 io_led_flash(LED_BLUE, BLINK_NORMAL, 100);
-    //                 break;
-    //             case '5':
-    //             case '6':
-    //             case '7':
-    //             case '8':
-    //             case '9':
-    //                 sprintf(r69.buff,"<R;TEST;%s;RELAY;%d>", main_ctrl.my_addr, r69.butt_val);
-    //                 io_led_flash(LED_BLUE, BLINK_NORMAL, 100);
-    //                 break;
+    }
 
-    //         }
-    //         if(r69.duration > 0 ) io_led_flash(LED_YELLOW, BLINK_NORMAL, 100);;
-    //         Serial.println(r69.buff);    
-    //         //Serial1.println(r69.buff);    
-    //         rfm69_modem.radiate(r69.buff);
-    //         r69_th.state = 30;
-    //         break;
-    //     case 30:
-    //         io_led_flash(LED_BLUE, BLINK_OFF, 1);
-    //         r69_th.state = 10;
-    //         break;
-
-    // }
 }

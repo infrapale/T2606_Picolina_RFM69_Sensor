@@ -11,6 +11,11 @@
 #define SENSOR_LABEL_LEN        10
 #define NBR_TEST_SENSOR         4
 
+#define SENSOR_NODE_UNDEFINED   0
+#define SENSOR_NODE_PIHA1       1
+#define SENSOR_NODE_RANTA       2
+
+#define SENSOR_NODE             SENSOR_NODE_PIHA1
 
 typedef enum
 {
@@ -43,6 +48,16 @@ typedef enum
     SENSOR_SHOW_BM_CNTR     = 0b00010000,
 } sensor_show_bm_et;
 
+typedef enum
+{
+    SENSOR_VALUE_CAT_TEMP     = 0,
+    SENSOR_VALUE_CAT_HUM,
+    SENSOR_VALUE_CAT_PRESS,
+    SENSOR_VALUE_CAT_VAL1,
+    SENSOR_VALUE_CAT_CNTR,
+    SENSOR_VALUE_CAT_NBR_OF
+} sensor_value_category_et;
+
 typedef struct
 {
     char        label[SENSOR_LABEL_LEN];
@@ -53,7 +68,6 @@ typedef struct
     uint8_t     show_bm;
     uint16_t    counter;
     uint32_t    next_meas;
-    uint32_t    next_send;
 } sensor_meta_st;
 
 
@@ -61,12 +75,25 @@ typedef struct
 typedef struct 
 {
     sensor_meta_st meta;
-    uint32_t  pressure;
     float     temperature;
     float     humidity;
+    float     pressure;
     float     float_val;
     bool      on_off;
 } sensor_st;
+
+typedef struct
+{
+    sensor_type_et type;
+    int8_t         value_pos[SENSOR_VALUE_CAT_NBR_OF]; 
+} sensor_alloc_st;
+
+typedef struct
+{
+    uint32_t    send_interval;
+    uint32_t    next_send;
+    sensor_alloc_st salloc[2];
+} sensor_node_st;
 
 typedef struct 
 {

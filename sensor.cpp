@@ -11,13 +11,35 @@
 #include "Adafruit_VEML7700.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include "r69.h"
 
 // #include "alpha.h"
 // #include "rfm.h"
 
-#define SEALEVELPRESSURE_HPA (1013.25)
-#define SEND_INTERVAL   (10000)
-#define SEND_BUFF_LEN   (60)
+#define SEALEVELPRESSURE_HPA    (1013.25)
+#define SEND_INTERVAL           (10000)
+#define SEND_BUFF_LEN           (60)
+#define NBR_OF_VALUE_POINTS     (10)
+#define NBR_OF_VALUE_SERIES     (4)
+#define MIN_NBR_OF_VALID_POINTS (6)
+#define LOW_CHECK_MULTIPL       (0.8)
+#define HIGH_CHECK_MULTIPL      (1.2)
+
+typedef struct 
+{
+    float value;
+    uint8_t valid;
+} value_point_st;
+
+typedef struct
+{
+    value_point_st vp[NBR_OF_VALUE_POINTS];
+    float   filtered_value;
+    uint8_t counter;
+    bool    is_ready;
+} value_series_st;
+
+
 
 typedef struct
 {
@@ -30,6 +52,8 @@ typedef struct
 } sensor_ctrl_st;
 
 
+
+
 //TwoWire *Wirep;
 extern main_ctrl_st main_ctrl;
 
@@ -38,6 +62,51 @@ void sensor_print_bmp280_data(void);
 void sensor_set_bmp280_configuration(void);
 void sensor_task(void);
 void sensor_test_task(void);
+
+value_series_st vseries[NBR_OF_VALUE_SERIES] = {0};
+
+uint8_t active_node = SENSOR_NODE;
+#if SENSOR_NODE == SENSOR_NODE_PIHA1
+sensor_node_st sensor_node =
+{
+    .send_interval = 200000, 
+    .next_send = 0,
+    .salloc = 
+    {
+        {
+            .type = SENSOR_TYPE_SHT31,
+            .value_pos = {
+                [SENSOR_VALUE_CAT_TEMP]     = 0,
+                [SENSOR_VALUE_CAT_HUM]      = 1,
+                [SENSOR_VALUE_CAT_PRESS]    = -1,
+                [SENSOR_VALUE_CAT_VAL1]     = -1,
+                [SENSOR_VALUE_CAT_CNTR]     = -1,
+            }           
+        },
+        {
+            .type = SENSOR_TYPE_VEML7700,
+            .value_pos = {
+                [SENSOR_VALUE_CAT_TEMP]     = -1,
+                [SENSOR_VALUE_CAT_HUM]      = -1,
+                [SENSOR_VALUE_CAT_PRESS]    = -1,
+                [SENSOR_VALUE_CAT_VAL1]     = 2,
+                [SENSOR_VALUE_CAT_CNTR]     = -1,
+            }
+        },
+    }
+   
+};
+#else
+
+#endif
+
+// sensor_node_st sensor_node[SENSOR_NODE_NBR_OF] =
+// {
+//     [SENSOR_NODE_UNDEFINED] = {.send_interval = 200000, .next_send = 0},
+//     [SENSOR_NODE_PIHA1]     = {.send_interval = 300000, .next_send = 0},
+//     [SENSOR_NODE_]          = {.send_interval = 600000, .next_send = 0}
+
+// };
 
 sensor_ctrl_st sensor_ctrl ={0};
 
@@ -60,59 +129,104 @@ sensor_st sensor[SENSOR_TYPE_NBR_OF] =
 {
     [SENSOR_TYPE_UNDEFINED] = {
             .meta = {.label= "Undef  ", .i2c_addr = 0x00, .active=false, .status=0, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_NONE, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_NONE, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_BMP180] = {
             .meta = {.label= "BMP180 ", .i2c_addr = I2C_ADDR_BMP180, .active=false, .status=0, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_BMP280] = {
             .meta = {.label= "BMP280 ", .i2c_addr = I2C_ADDR_BMP280, .active=false, .status=0, .updated=false,
-            .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_BME680] = {
             .meta = {.label= "BME680 ", .i2c_addr = I2C_ADDR_BME680, .active=false, .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM | SENSOR_SHOW_BM_PRESS, 
-            .counter= 0, .next_meas=0, .next_send= 0},
+            .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_AHT20] = {
             .meta = {.label= "AHT20  ", .i2c_addr = I2C_ADDR_AHT20 , .active=false, .status=0, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_SHT31] = {
             .meta = {.label= "SHT31  ", .i2c_addr = I2C_ADDR_SHT31, .active=false, .status=0, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_DS18B20] = {
             .meta = {.label= "DS18B20", .i2c_addr = 0x00, .active=true,  .status=0, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_PIR] = {
             .meta = {.label= "PIR    ", .i2c_addr = 0x00, .active=false, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_CNTR, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_CNTR, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_VEML7700] = {
             .meta = {.label= "VEML7700", .i2c_addr = I2C_ADDR_VEML7700, .active=false, .updated=false, 
-            .show_bm = SENSOR_SHOW_BM_VALUE, .counter= 0, .next_meas=0, .next_send= 0},
+            .show_bm = SENSOR_SHOW_BM_VALUE, .counter= 0, .next_meas=0},
             .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
     },
 };
 
-sensor_test_st sensor_test[NBR_TEST_SENSOR] =
+
+void sensor_add_value(uint8_t sindx, float value)
 {
-    {.sender=12, .sensor=SENSOR_TYPE_BMP180,.interval=11000, .temp=14.0, .min_temp=4.0, .max_temp=38.0, .delta_temp=2.0, .going_up=false},
-    {.sender=18, .sensor=SENSOR_TYPE_BMP280,.interval=37000, .temp=4.0,  .min_temp=4.0, .max_temp=38.0, .delta_temp=2.0, .going_up=true},
-    {.sender=24, .sensor=SENSOR_TYPE_AHT20,.interval=61000,  .temp=10.0, .min_temp=4.0, .max_temp=38.0, .delta_temp=1.0, .going_up=false},
-    {.sender=10, .sensor=SENSOR_TYPE_SHT31,.interval=120000, .temp=-1.0, .min_temp=-4.0, .max_temp=18.0, .delta_temp=2.0, .going_up=false},
-};
+    float draft;
+    float min_val;
+    float max_val;
+    float result;
+    uint8_t valid_values;
+
+    if(sindx < NBR_OF_VALUE_SERIES)
+    {
+        if(vseries[sindx].counter >= NBR_OF_VALUE_POINTS ) {
+            vseries[sindx].counter = 0;
+        }
+        vseries[sindx].vp[vseries[sindx].counter].value = value;
+        vseries[sindx].counter++;
+        if(vseries[sindx].counter >= NBR_OF_VALUE_POINTS){
+            draft = 0.0;
+            for(uint8_t i = 0; i < NBR_OF_VALUE_POINTS; i++){
+                draft += vseries[sindx].vp[i].value;
+            }
+            draft = draft / NBR_OF_VALUE_POINTS;
+            if(draft >= 0 ) {
+                min_val = draft * LOW_CHECK_MULTIPL;
+                max_val = draft * HIGH_CHECK_MULTIPL;
+            }
+            else {
+                min_val = draft * HIGH_CHECK_MULTIPL;
+                max_val = draft * LOW_CHECK_MULTIPL;
+            }
+            result = 0.0;
+            valid_values = 0;
+            for(uint8_t i = 0; i < NBR_OF_VALUE_POINTS; i++){
+                if ((vseries[sindx].vp[i].value  > min_val) && (vseries[sindx].vp[i].value < max_val))
+                {
+                    result += vseries[sindx].vp[i].value;
+                    valid_values++;
+                }
+            }
+            if (valid_values >= MIN_NBR_OF_VALID_POINTS){
+                vseries[sindx].filtered_value = result / valid_values;
+                vseries[sindx].is_ready = true;
+            }
+            else {
+                vseries[sindx].filtered_value =0.0;
+                vseries[sindx].is_ready = false;
+            }
+            vseries[sindx].counter = 0;
+        }
+        else vseries[sindx].counter++;
+    }
+}
 
 void sensor_scan(void)
 {
@@ -167,7 +281,6 @@ void sensor_initialize(void)
                 sensor[sindx].meta.active = true; 
                 Serial.printf("Sensor %s active\n", sensor[sindx].meta.label);
                 sensor[sindx].meta.status = SENSOR_STATUS_OK;
-                sensor[sindx].meta.next_send = millis() + SEND_INTERVAL;
             } else sensor[sindx].meta.status = SENSOR_STATUS_NOT_AVAILABLE;
         }
     }
@@ -239,7 +352,6 @@ void sensor_initialize(void)
 
         Serial.printf("!!! Sensor[%d] %s: active: %d status: %d\n", sindx, sensor[sindx].meta.label, sensor[sindx].meta.active, sensor[sindx].meta.status);
         if (sensor[sindx].meta.active){
-            sensor[sindx].meta.next_send = millis() + sindx*1000;
             nbr_active++;
         }
     }
@@ -374,6 +486,40 @@ void sensor_pir_state_machine(void)
     }
 }
 
+sensor_node_et sensor_node_send(void)
+{
+    sensor_node_et send_node = SENSOR_NODE_UNDEFINED;
+    for( uint8_t node= SENSOR_NODE_PIHA1; node < SENSOR_NODE_NBR_OF; node++)
+    {
+        if(millis() > sensor_node[node].next_send){
+            send_node = (sensor_node_et) node;
+            break;
+        }
+    }
+
+    switch(send_node)
+    {
+        case SENSOR_NODE_UNDEFINED:
+            break;
+        case SENSOR_NODE_PIHA1:
+            sprintf(sensor_ctrl.buff,
+                "<S;PIHA1;T;%0.1f;H;%0.0f;L;%0.0f>",
+                sensor[SENSOR_TYPE_SHT31].temperature,
+                sensor[SENSOR_TYPE_SHT31].humidity,
+                sensor[SENSOR_TYPE_VEML7700].float_val
+            );
+            
+            break;
+        case SENSOR_NODE_:
+            break;
+    }
+    if(send_node != SENSOR_NODE_UNDEFINED){
+        Serial.println(sensor_ctrl.buff);
+        r69_send(sensor_ctrl.buff);
+        sensor_node[send_node].next_send = millis() + sensor_node[send_node].send_interval;
+    }
+    return send_node;
+}
 
 void sensor_task(void)
 {
@@ -393,40 +539,8 @@ void sensor_task(void)
             sensor_handle.state = 20;
             break;
         case 20:
-            if(millis() > sensor[sensor_ctrl.sensor_indx].meta.next_send){
-
-                switch(sensor_ctrl.sensor_indx)
-                {
-                    case SENSOR_TYPE_UNDEFINED:
-                        break;
-                    case SENSOR_TYPE_BMP180:
-                        break;
-                    case SENSOR_TYPE_BMP280:
-                        break;
-                    case SENSOR_TYPE_BME680:
-                        break;
-                    case SENSOR_TYPE_AHT20:
-                        break;
-                    case SENSOR_TYPE_SHT31:
-                        sprintf(sensor_ctrl.buff,
-                            "<S;PIHA1;T;%f;H;%f>",
-                            sensor[sensor_ctrl.sensor_indx].temperature,
-                            sensor[sensor_ctrl.sensor_indx].humidity
-                        );
-                        Serial.println(sensor_ctrl.buff);
-                        break;
-                    case SENSOR_TYPE_DS18B20:
-                        break;
-                    case SENSOR_TYPE_PIR:
-                        break;
-                    case SENSOR_TYPE_VEML7700:
-                        sprintf(sensor_ctrl.buff,
-                            "<S;PIHA1;L;%f>",
-                            sensor[sensor_ctrl.sensor_indx].float_val
-                        );
-                        Serial.println(sensor_ctrl.buff);
-                        break;
-                }
+            if(r69_ready_to_send()){
+                sensor_node_send();
             }
             sensor_handle.state = 100;
             break;
@@ -437,56 +551,6 @@ void sensor_task(void)
             break;
     }
 }
-
-void sensor_test_task(void)
-{
-    uint8_t sensor_type;
-    //Serial.printf("sensor_indx = %d\n", sensor_ctrl.sensor_indx );
-    switch(sensor_handle.state)
-    {
-        case 0:
-            sensor_handle.state = 10;
-            sensor_ctrl.sensor_indx = 0;
-            break;
-        case 5:
-            sensor_handle.state = 6;
-            sensor_ctrl.timeout = millis() + main_ctrl.node_addr * 3;
-            break;    
-        case 6:
-            if (millis() > sensor_ctrl.timeout) sensor_handle.state = 10;
-            break;
-        case 10: 
-            sensor_type = sensor_test[sensor_ctrl.sensor_indx].sensor;
-            if((millis() > sensor[sensor_type].meta.next_send)) {
-                sensor[sensor_type].temperature = sensor_test[sensor_ctrl.sensor_indx].temp;
-                sensor[sensor_type].meta.updated = true;
-                //rfm_set_sender(sensor_test[sensor_ctrl.sensor_indx].sender);
-
-                if(++sensor[sensor_type].meta.counter > 9999) sensor[sensor_type].meta.counter = 0;
-                if (sensor_test[sensor_ctrl.sensor_indx].going_up) sensor_test[sensor_ctrl.sensor_indx].temp += sensor_test[sensor_ctrl.sensor_indx].delta_temp;
-                else sensor_test[sensor_ctrl.sensor_indx].temp -= sensor_test[sensor_ctrl.sensor_indx].delta_temp;
-                if(sensor_test[sensor_ctrl.sensor_indx].temp >= sensor_test[sensor_ctrl.sensor_indx].max_temp) sensor_test[sensor_ctrl.sensor_indx].going_up =false;
-                if(sensor_test[sensor_ctrl.sensor_indx].temp <= sensor_test[sensor_ctrl.sensor_indx].min_temp) sensor_test[sensor_ctrl.sensor_indx].going_up =true;
-                sensor[sensor_type].meta.next_send = millis() + sensor_test[sensor_ctrl.sensor_indx].interval;
-                sensor_handle.state = 20;
-                sensor_ctrl.timeout = millis() + 4000;
-            }
-            else {
-                sensor_handle.state = 100;
-            }                     
-            break;
-        case 20:
-            if (millis() > sensor_ctrl.timeout) sensor_handle.state = 100;
-            
-            break;
-        case 100:
-            if(sensor_ctrl.sensor_indx < NBR_TEST_SENSOR-1) sensor_ctrl.sensor_indx++;
-            else sensor_ctrl.sensor_indx = 0;
-            sensor_handle.state = 5;
-            break;
-    }
-}
-
 
 
 void sensor_print_bmp280_data(void)
