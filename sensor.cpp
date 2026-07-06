@@ -12,6 +12,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include "r69.h"
+#include "super.h"
 
 // #include "alpha.h"
 // #include "rfm.h"
@@ -71,32 +72,12 @@ sensor_node_st sensor_node =
 {
     .send_interval = 200000, 
     .next_send = 0,
-    .salloc = 
-    {
-        {
-            .type = SENSOR_TYPE_SHT31,
-            .value_pos = {
-                [SENSOR_VALUE_CAT_TEMP]     = 0,
-                [SENSOR_VALUE_CAT_HUM]      = 1,
-                [SENSOR_VALUE_CAT_PRESS]    = -1,
-                [SENSOR_VALUE_CAT_VAL1]     = -1,
-                [SENSOR_VALUE_CAT_CNTR]     = -1,
-            }           
-        },
-        {
-            .type = SENSOR_TYPE_VEML7700,
-            .value_pos = {
-                [SENSOR_VALUE_CAT_TEMP]     = -1,
-                [SENSOR_VALUE_CAT_HUM]      = -1,
-                [SENSOR_VALUE_CAT_PRESS]    = -1,
-                [SENSOR_VALUE_CAT_VAL1]     = 2,
-                [SENSOR_VALUE_CAT_CNTR]     = -1,
-            }
-        },
-    }
-   
 };
 #else
+{
+    .send_interval = 200000, 
+    .next_send = 0,
+};
 
 #endif
 
@@ -130,54 +111,62 @@ sensor_st sensor[SENSOR_TYPE_NBR_OF] =
     [SENSOR_TYPE_UNDEFINED] = {
             .meta = {.label= "Undef  ", .i2c_addr = 0x00, .active=false, .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_NONE, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_BMP180] = {
             .meta = {.label= "BMP180 ", .i2c_addr = I2C_ADDR_BMP180, .active=false, .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_BMP280] = {
             .meta = {.label= "BMP280 ", .i2c_addr = I2C_ADDR_BMP280, .active=false, .status=0, .updated=false,
             .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_BME680] = {
             .meta = {.label= "BME680 ", .i2c_addr = I2C_ADDR_BME680, .active=false, .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM | SENSOR_SHOW_BM_PRESS, 
             .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_AHT20] = {
             .meta = {.label= "AHT20  ", .i2c_addr = I2C_ADDR_AHT20 , .active=false, .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_SHT31] = {
             .meta = {.label= "SHT31  ", .i2c_addr = I2C_ADDR_SHT31, .active=false, .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_TEMP | SENSOR_SHOW_BM_HUM, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_DS18B20] = {
-            .meta = {.label= "DS18B20", .i2c_addr = 0x00, .active=true,  .status=0, .updated=false, 
+            .meta = {.label= "DS18B20", .i2c_addr = 0x00, .active=false,  .status=0, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_TEMP, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_PIR] = {
             .meta = {.label= "PIR    ", .i2c_addr = 0x00, .active=false, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_CNTR, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
     [SENSOR_TYPE_VEML7700] = {
             .meta = {.label= "VEML7700", .i2c_addr = I2C_ADDR_VEML7700, .active=false, .updated=false, 
             .show_bm = SENSOR_SHOW_BM_VALUE, .counter= 0, .next_meas=0},
-            .pressure = 0, .temperature = 0.0, .humidity = 0.0, .float_val = 0.0, .on_off = 0
+            .temperature = 0.0, .humidity = 0.0, .pressure = 0, .float_val = 0.0, .on_off = 0
     },
 };
 
 
 void sensor_add_value(uint8_t sindx, float value)
 {
+    /*
+        Filter values from a number of samples (NBR_OF_VALUE_POINTS)
+        1. collect all samples
+        2. calculate total average
+        3. drop values not within LOW_CHECK_MULTIPL..HIGH_CHECK_MULTIPL
+        4. if enough valid smaples recalculate and save filtered value and set ready
+        5. else save 0 and clear ready
+    */
     float draft;
     float min_val;
     float max_val;
@@ -264,6 +253,7 @@ void sensor_initialize(void)
 {
     uint8_t i2c_addr;
     uint8_t i2c_error;
+    bool    bstatus;
 
     Wire.setSDA(PIN_I2C0_SDA);
     Wire.setSCL(PIN_I2C0_SCL);
@@ -271,6 +261,12 @@ void sensor_initialize(void)
     Wire.begin();
     
     sensor_scan();
+
+    #if SENSOR_NODE == SENSOR_NODE_PIHA1
+    sensor[SENSOR_TYPE_SHT31].meta.active = true;
+    sensor[SENSOR_TYPE_VEML7700].meta.active = true;
+    #endif
+
 
     for (uint8_t sindx = 0; sindx < SENSOR_TYPE_NBR_OF; sindx++ ){
         i2c_addr = sensor[sindx].meta.i2c_addr;
@@ -310,7 +306,9 @@ void sensor_initialize(void)
                     sensor[sindx].meta.status = aht20.begin(&Wire);
                     break;
                 case SENSOR_TYPE_SHT31:
-                    sensor[sindx].meta.status = sht31.begin(sensor[SENSOR_TYPE_SHT31].meta.i2c_addr);
+                    bstatus = sht31.begin(sensor[SENSOR_TYPE_SHT31].meta.i2c_addr);
+                    if(bstatus) sensor[sindx].meta.status = 0;
+                    else sensor[sindx].meta.status = 1;
                     Serial.print("SHT31 Heater is ");
                     (sht31.isHeaterEnabled()) ? Serial.println("Enabled") : Serial.println("Disabled");
                     break;
@@ -359,7 +357,7 @@ void sensor_initialize(void)
         Serial.println("Error!!! No Active Sensors");
         main_ctrl.error.sensor = 1;
     }
- 
+    sensor_node.next_send = millis() + sensor_node.send_interval;
     atask_add_new(&sensor_handle);  
 }
 
@@ -454,6 +452,7 @@ void sensor_read_values(uint8_t sindx)
         main_ctrl.error.sensor = 0;
         // if(++sensor[sindx].meta.counter > 9999) sensor[sindx].meta.counter = 0; 
         sensor_print(sindx);  
+        super_clear_cntr(SUPER_CNTR_SENSOR);
         
     }
     else {
@@ -486,44 +485,33 @@ void sensor_pir_state_machine(void)
     }
 }
 
-sensor_node_et sensor_node_send(void)
+bool sensor_node_send(void)
 {
-    sensor_node_et send_node = SENSOR_NODE_UNDEFINED;
-    for( uint8_t node= SENSOR_NODE_PIHA1; node < SENSOR_NODE_NBR_OF; node++)
-    {
-        if(millis() > sensor_node[node].next_send){
-            send_node = (sensor_node_et) node;
-            break;
-        }
-    }
-
-    switch(send_node)
-    {
-        case SENSOR_NODE_UNDEFINED:
-            break;
-        case SENSOR_NODE_PIHA1:
+    bool do_send = false;
+    #if(SENSOR_NODE  == SENSOR_NODE_PIHA1)
+        if(millis() > sensor_node.next_send){
             sprintf(sensor_ctrl.buff,
                 "<S;PIHA1;T;%0.1f;H;%0.0f;L;%0.0f>",
                 sensor[SENSOR_TYPE_SHT31].temperature,
                 sensor[SENSOR_TYPE_SHT31].humidity,
                 sensor[SENSOR_TYPE_VEML7700].float_val
             );
-            
-            break;
-        case SENSOR_NODE_:
-            break;
-    }
-    if(send_node != SENSOR_NODE_UNDEFINED){
+            do_send = true;
+
+        }
+    #endif
+
+    if(do_send){
         Serial.println(sensor_ctrl.buff);
         r69_send(sensor_ctrl.buff);
-        sensor_node[send_node].next_send = millis() + sensor_node[send_node].send_interval;
+        sensor_node.next_send = millis() + sensor_node.send_interval;
     }
-    return send_node;
+    return do_send;
 }
 
 void sensor_task(void)
 {
-    Serial.printf("State: %d, sensor_indx = %d\n", sensor_handle.state, sensor_ctrl.sensor_indx );
+    // Serial.printf("State: %d, sensor_indx = %d\n", sensor_handle.state, sensor_ctrl.sensor_indx );
     switch(sensor_handle.state)
     {
         case 0:
@@ -540,13 +528,17 @@ void sensor_task(void)
             break;
         case 20:
             if(r69_ready_to_send()){
-                sensor_node_send();
+                if (sensor_node_send());
             }
             sensor_handle.state = 100;
             break;
         case 100:
             if(sensor_ctrl.sensor_indx < SENSOR_TYPE_NBR_OF-1) sensor_ctrl.sensor_indx++;
             else sensor_ctrl.sensor_indx = 0;
+            while (!sensor[sensor_ctrl.sensor_indx].meta.active){
+                if(sensor_ctrl.sensor_indx < SENSOR_TYPE_NBR_OF-1) sensor_ctrl.sensor_indx++;
+                 else sensor_ctrl.sensor_indx = 0;
+            }
             sensor_handle.state = 10;
             break;
     }

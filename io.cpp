@@ -3,6 +3,7 @@
 #include "atask.h"
 #include "main.h"
 #include "io.h"
+#include "super.h"
 
 typedef struct
 {
@@ -49,7 +50,7 @@ const uint32_t led_pattern[BLINK_NBR_OF] =
 
 void io_task(void);
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
-atask_st io_task_handle       =   {"I/O Task       ", 100,     0,     0,  255,    0,  1,  io_task };
+atask_st io_th                  = {"I/O Task       ", 100,     0,     0,  255,    0,  1,  io_task };
 
 void io_rfm69_spi0_initialize(void) 
 {
@@ -75,9 +76,7 @@ void io_initialize(void)
     //RFM95 Reset
     pinMode(PIN_RFM_RESET, OUTPUT);
     digitalWrite(PIN_RFM_RESET, HIGH);
-    pinMode(PIN_IRQ_A, INPUT);
-    pinMode(PIN_IRQ_B, INPUT);
- 
+    pinMode(PIN_EN_WATCHDOG, INPUT_PULLUP);
     io_ctrl.pattern_bit = 0;
     for (uint8_t i = LED_RED; i < LED_NBR_OF; i++)
     {
@@ -87,7 +86,7 @@ void io_initialize(void)
 }
 void io_task_initialize(void)
 {
-    io_ctrl.tindx =  atask_add_new(&io_task_handle);
+    io_ctrl.tindx =  atask_add_new(&io_th);
 }
 
 
@@ -121,9 +120,15 @@ void io_task(void)
         }
     } 
     if (++io_ctrl.pattern_bit >= 32) io_ctrl.pattern_bit = 0;
+    super_clear_cntr(SUPER_CNTR_IO);
 }
 
 bool io_pir_detected(void)
 {
     return (digitalRead(PIN_PIR) == 1);
+}
+
+bool io_wd_is_enabled(void)
+{
+    return (digitalRead(PIN_EN_WATCHDOG) == 1);
 }

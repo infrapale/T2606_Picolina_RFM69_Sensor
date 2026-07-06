@@ -7,6 +7,7 @@
 #include    "io.h"
 #include    "r69.h"
 #include    "sensor.h"
+#include    "super.h"
 
 
 
@@ -109,5 +110,6 @@ void r69_task(void)
             break;
 
     }
+    super_clear_cntr(SUPER_CNTR_R69);
 
 }

@@ -16,6 +16,7 @@
 #include    "atask.h"
 #include    "io.h"
 #include    "sensor.h"
+#include    "super.h"
 
 
 main_ctrl_st main_ctrl = {
@@ -44,8 +45,12 @@ void setup() {
     Serial.print(__TIME__); Serial.println();
 
     atask_initialize();
+    io_task_initialize();
+    super_initialize();
     r69_initialize();
     sensor_initialize();
+
+
 }
 
 void loop() {

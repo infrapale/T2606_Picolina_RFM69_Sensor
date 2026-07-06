@@ -92,7 +92,7 @@ typedef struct
 {
     uint32_t    send_interval;
     uint32_t    next_send;
-    sensor_alloc_st salloc[2];
+    //sensor_alloc_st salloc[2];
 } sensor_node_st;
 
 typedef struct 

@@ -36,13 +36,11 @@
 #define PIN_RFM_RESET   (20u)
 #define PIN_RFM_IRQ     (21u)
 
-#define PIN_EN_DEBUG    (22u)
+#define PIN_EN_WATCHDOG    (22u)
 
 #define BLINK_DISABLE  (9998)
 #define BLINK_FOREVER  (9999)
 
-#define PIN_IRQ_A       (14u)
-#define PIN_IRQ_B       (15u)
 
 
 
@@ -83,4 +81,5 @@ void io_task(void);
 
 bool io_pir_detected(void);
 
+bool io_wd_is_enabled(void);
 #endif
