@@ -32,7 +32,6 @@ uint8_t key[] = RFM69_KEY;
 RH_RF69         rf69(PIN_RFM_CS, PIN_RFM_IRQ);
 Modem69         rfm69_modem(&rf69,  PIN_RFM_RESET);
 
-extern main_ctrl_st main_ctrl;
 r69_st r69 = {0};
 
 void modem_task(void)
@@ -51,9 +50,9 @@ void r69_initialize(void)
 
     io_rfm69_spi0_initialize();
     r69.not_send_before = millis() + MIN_SEND_INTERVAL;
-    rfm69_modem.set_debug_print(debug_cb_print);
+    // rfm69_modem.set_debug_print(debug_cb_print);
     rfm69_modem.initialize(key);
-    rfm69_modem.radiate(__APP__);
+    rfm69_modem.radiate(__SENSOR__);
 
     atask_add_new(&modem_th);
     r69.task_indx =  atask_add_new(&r69_th);

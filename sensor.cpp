@@ -14,14 +14,11 @@
 #include "r69.h"
 #include "super.h"
 
-// #include "alpha.h"
-// #include "rfm.h"
 
 #define SEALEVELPRESSURE_HPA    (1013.25)
-#define SEND_INTERVAL           (10000)
+#define SEND_INTERVAL           (600000)
 #define SEND_BUFF_LEN           (60)
 #define NBR_OF_VALUE_POINTS     (10)
-#define NBR_OF_VALUE_SERIES     (4)
 #define MIN_NBR_OF_VALID_POINTS (6)
 #define LOW_CHECK_MULTIPL       (0.8)
 #define HIGH_CHECK_MULTIPL      (1.2)
@@ -39,8 +36,6 @@ typedef struct
     uint8_t counter;
     bool    is_ready;
 } value_series_st;
-
-
 
 typedef struct
 {
@@ -64,22 +59,53 @@ void sensor_set_bmp280_configuration(void);
 void sensor_task(void);
 void sensor_test_task(void);
 
-value_series_st vseries[NBR_OF_VALUE_SERIES] = {0};
 
 uint8_t active_node = SENSOR_NODE;
 #if SENSOR_NODE == SENSOR_NODE_PIHA1
-sensor_node_st sensor_node =
-{
-    .send_interval = 200000, 
-    .next_send = 0,
-};
-#else
-{
-    .send_interval = 200000, 
-    .next_send = 0,
-};
+    typedef enum
+    {
+        VALUE_INDEX_TEMPERATURE = 0,
+        VALUE_INDEX_HUMIDITY,
+        VALUE_INDEX_LUX,
+        VALUE_INDEX_NBR_OF
+    } value_index_et;
 
+    sensor_node_st sensor_node =
+    {
+        .send_interval = 30000, 
+        .next_send = 0,
+    };
+
+#elif ((SENSOR_NODE == SENSOR_NODE_KHH) || (SENSOR_NODE == SENSOR_NODE_TUPA1))
+    typedef enum
+    {
+        VALUE_INDEX_TEMPERATURE = 0,
+        VALUE_INDEX_HUMIDITY,
+        VALUE_INDEX_NBR_OF
+    } value_index_et;
+
+    sensor_node_st sensor_node =
+    {
+        .send_interval = 30000, 
+        .next_send = 0,
+    };
+
+#else
+    typedef enum
+    {
+        VALUE_INDEX_TEMPERATURE = 0,
+        VALUE_INDEX_HUMIDITY,
+        VALUE_INDEX_NBR_OF
+    } value_index_et;
+
+    sensor_node_st sensor_node =
+    {
+        .send_interval = 200000, 
+        .next_send = 0,
+    };
 #endif
+
+value_series_st vseries[VALUE_INDEX_NBR_OF] = {0};
 
 // sensor_node_st sensor_node[SENSOR_NODE_NBR_OF] =
 // {
@@ -157,6 +183,21 @@ sensor_st sensor[SENSOR_TYPE_NBR_OF] =
 };
 
 
+void sensor_clear_values(uint8_t sindx)
+{
+    for(uint8_t i = 0; i < NBR_OF_VALUE_POINTS; i++){
+        vseries[sindx].vp[i].value = 0.0;
+    }
+    vseries[sindx].is_ready = false;
+    vseries[sindx].counter = 0;
+}
+
+void sensor_clear_all_values(void){
+    for(uint8_t sindx = 0; sindx < VALUE_INDEX_NBR_OF; sindx++){
+        sensor_clear_values(sindx);
+    }
+}
+
 void sensor_add_value(uint8_t sindx, float value)
 {
     /*
@@ -173,8 +214,9 @@ void sensor_add_value(uint8_t sindx, float value)
     float result;
     uint8_t valid_values;
 
-    if(sindx < NBR_OF_VALUE_SERIES)
+    if((sindx < VALUE_INDEX_NBR_OF) && (!vseries[sindx].is_ready))
     {
+        io_led_flash(LED_YELLOW, BLINK_JITTER_1, 20);
         if(vseries[sindx].counter >= NBR_OF_VALUE_POINTS ) {
             vseries[sindx].counter = 0;
         }
@@ -206,15 +248,22 @@ void sensor_add_value(uint8_t sindx, float value)
             if (valid_values >= MIN_NBR_OF_VALID_POINTS){
                 vseries[sindx].filtered_value = result / valid_values;
                 vseries[sindx].is_ready = true;
+                io_led_flash(LED_YELLOW, BLINK_FAST, 80);
             }
             else {
                 vseries[sindx].filtered_value =0.0;
                 vseries[sindx].is_ready = false;
+                io_led_flash(LED_RED, BLINK_FAST, 120);
             }
             vseries[sindx].counter = 0;
         }
-        else vseries[sindx].counter++;
     }
+    // Serial.printf("sindx:%d counter:%d value:%0.2f is_ready:%d\n",
+    //     sindx,
+    //     vseries[sindx].counter,
+    //     value,
+    //     vseries[sindx].is_ready
+    // );
 }
 
 void sensor_scan(void)
@@ -265,6 +314,8 @@ void sensor_initialize(void)
     #if SENSOR_NODE == SENSOR_NODE_PIHA1
     sensor[SENSOR_TYPE_SHT31].meta.active = true;
     sensor[SENSOR_TYPE_VEML7700].meta.active = true;
+    #elif ((SENSOR_NODE == SENSOR_NODE_KHH) || (SENSOR_NODE == SENSOR_NODE_TUPA1))
+    sensor[SENSOR_TYPE_SHT31].meta.active = true;
     #endif
 
 
@@ -391,6 +442,45 @@ void sensor_read_values(uint8_t sindx)
     bool read_ok = true;
     float fval;
 
+    #if (SENSOR_NODE == SENSOR_NODE_PIHA1)
+    switch(sindx) {
+        case SENSOR_TYPE_SHT31:
+            fval = sht31.readTemperature();
+            if (isnan(fval)) read_ok = false; 
+            else {
+                sensor[sindx].temperature = fval;
+                sensor_add_value(VALUE_INDEX_TEMPERATURE, fval);
+            }
+            fval = sht31.readHumidity();
+            if (isnan(fval)) read_ok = false; 
+            else {
+                sensor[sindx].humidity = fval;
+                sensor_add_value(VALUE_INDEX_HUMIDITY, fval);
+            }
+            break;
+        case SENSOR_TYPE_VEML7700:
+            sensor[sindx].float_val = veml.readLux(VEML_LUX_AUTO);
+            sensor_add_value(VALUE_INDEX_LUX, sensor[sindx].float_val);
+            break;
+    }
+    #elif ((SENSOR_NODE == SENSOR_NODE_KHH) || (SENSOR_NODE == SENSOR_NODE_TUPA1))
+    switch(sindx) {
+        case SENSOR_TYPE_SHT31:
+            fval = sht31.readTemperature();
+            if (isnan(fval)) read_ok = false; 
+            else {
+                sensor[sindx].temperature = fval;
+                sensor_add_value(VALUE_INDEX_TEMPERATURE, fval);
+            }
+            fval = sht31.readHumidity();
+            if (isnan(fval)) read_ok = false; 
+            else {
+                sensor[sindx].humidity = fval;
+                sensor_add_value(VALUE_INDEX_HUMIDITY, fval);
+            }
+            break;
+    }
+    #else
     switch(sindx) {
         case SENSOR_TYPE_UNDEFINED:
             break;
@@ -420,9 +510,17 @@ void sensor_read_values(uint8_t sindx)
             break;
         case SENSOR_TYPE_SHT31:
             fval = sht31.readTemperature();
-            if (isnan(fval)) read_ok = false; else sensor[sindx].temperature = fval;
+            if (isnan(fval)) read_ok = false; 
+            else {
+                sensor[sindx].temperature = fval;
+                sensor_add_value(VALUE_INDEX_TEMPERATURE, fval);
+            }
             fval = sht31.readHumidity();
-            if (isnan(fval)) read_ok = false; else sensor[sindx].humidity = fval;
+            if (isnan(fval)) read_ok = false; 
+            else {
+                sensor[sindx].humidity = fval;
+                sensor_add_value(VALUE_INDEX_HUMIDITY, fval);
+            }
             break;
         case SENSOR_TYPE_DS18B20:
             fval = ds18b20.getTempCByIndex(0);
@@ -442,9 +540,11 @@ void sensor_read_values(uint8_t sindx)
             break;
         case SENSOR_TYPE_VEML7700:
             sensor[sindx].float_val = veml.readLux(VEML_LUX_AUTO);
+            sensor_add_value(VALUE_INDEX_LUX, sensor[sindx].float_val);
             break;
-
     }
+
+    #endif
     sensor[sindx].meta.next_meas = millis() + INTERVAL_READ_SENSOR;
     Serial.printf("sensor_read_values(%d) read_ok: %d\n", sindx, read_ok);
     if (read_ok) {
@@ -489,22 +589,54 @@ bool sensor_node_send(void)
 {
     bool do_send = false;
     #if(SENSOR_NODE  == SENSOR_NODE_PIHA1)
-        if(millis() > sensor_node.next_send){
-            sprintf(sensor_ctrl.buff,
-                "<S;PIHA1;T;%0.1f;H;%0.0f;L;%0.0f>",
-                sensor[SENSOR_TYPE_SHT31].temperature,
-                sensor[SENSOR_TYPE_SHT31].humidity,
-                sensor[SENSOR_TYPE_VEML7700].float_val
-            );
-            do_send = true;
-
+        if(millis() > sensor_node.next_send)
+        {
+            if(vseries[VALUE_INDEX_TEMPERATURE].is_ready &&
+                vseries[VALUE_INDEX_HUMIDITY].is_ready,
+                vseries[VALUE_INDEX_LUX].is_ready)
+            {
+                sprintf(sensor_ctrl.buff,
+                    "<S;PIHA1;T;%0.1f;H;%0.0f;L;%0.0f>",
+                    vseries[VALUE_INDEX_TEMPERATURE].filtered_value,
+                    vseries[VALUE_INDEX_HUMIDITY].filtered_value,
+                    vseries[VALUE_INDEX_LUX].filtered_value);
+                do_send = true;
+            }
         }
+    #elif (SENSOR_NODE == SENSOR_NODE_KHH) 
+        if(millis() > sensor_node.next_send)
+        {
+            if(vseries[VALUE_INDEX_TEMPERATURE].is_ready &&
+                vseries[VALUE_INDEX_HUMIDITY].is_ready)
+            {
+                sprintf(sensor_ctrl.buff,
+                    "<S;KHH;T;%0.1f;H;%0.0f>",
+                    vseries[VALUE_INDEX_TEMPERATURE].filtered_value,
+                    vseries[VALUE_INDEX_HUMIDITY].filtered_value);
+                do_send = true;
+            }
+        }    
+    #elif (SENSOR_NODE == SENSOR_NODE_TUPA1)
+        if(millis() > sensor_node.next_send)
+        {
+            if(vseries[VALUE_INDEX_TEMPERATURE].is_ready &&
+                vseries[VALUE_INDEX_HUMIDITY].is_ready)
+            {
+                sprintf(sensor_ctrl.buff,
+                    "<S;TUPA1;T;%0.1f;H;%0.0f>",
+                    vseries[VALUE_INDEX_TEMPERATURE].filtered_value,
+                    vseries[VALUE_INDEX_HUMIDITY].filtered_value);
+                do_send = true;
+            }
+        }    
     #endif
 
     if(do_send){
+        io_led_flash(LED_BLUE, BLINK_NORMAL, 60);
         Serial.println(sensor_ctrl.buff);
         r69_send(sensor_ctrl.buff);
         sensor_node.next_send = millis() + sensor_node.send_interval;
+        sensor_clear_all_values();
     }
     return do_send;
 }

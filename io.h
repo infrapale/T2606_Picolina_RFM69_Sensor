@@ -21,8 +21,8 @@
 
 // LED Definitions
 #define PIN_LED_RED     (10u)
-#define PIN_LED_BLUE    (11u)
-#define PIN_LED_YELLOW  (12u)
+#define PIN_LED_YELLOW  (11u)
+#define PIN_LED_BLUE    (12u)
 
 // #define PIN_IO_RESET    (12u)
 #define PIN_GP13        (13u)

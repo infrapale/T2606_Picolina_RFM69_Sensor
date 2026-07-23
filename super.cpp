@@ -23,7 +23,7 @@ super_st super =
     .wd_enabled = false,
     .cntr = 
     {
-      [SUPER_CNTR_SENSOR]   = {.value = 0, .limit = 10},
+      [SUPER_CNTR_SENSOR]   = {.value = 0, .limit = 60},
       [SUPER_CNTR_R69]      = {.value = 0, .limit = 40},
       [SUPER_CNTR_IO]       = {.value = 0, .limit = 10},
       [SUPER_CNTR_HARAKIRI] = {.value = 0, .limit = SUPER_HARAKIRI_TIMEOUT_SEC},
@@ -67,15 +67,17 @@ void super_task(void)
                 for (uint8_t i = 0; i < SUPER_CNTR_NBR_OF; i++) super.cntr[i].value = 0;
                 super_th.state = 20;
             }
+            //super_th.state = 20;
             break;
         case 20:
-            watchdog_update();
+            if (super.wd_enabled) watchdog_update();
             for (uint8_t i = 0; i < SUPER_CNTR_NBR_OF; i++)
             {
                 if(super.cntr[i].value++ > super.cntr[i].limit){
                     Serial.printf("Starting WD reset for counter %d\n",i);
                     super_th.state = 100;
                     super.timeout = millis() + SUPER_WD_TIMEOUT + 1000;
+                    io_led_flash(LED_RED, BLINK_SOS, 100);
                 }
             }
             break;

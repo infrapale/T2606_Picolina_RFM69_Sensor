@@ -14,8 +14,24 @@
 #define SENSOR_NODE_UNDEFINED   0
 #define SENSOR_NODE_PIHA1       1
 #define SENSOR_NODE_RANTA       2
+#define SENSOR_NODE_KHH         3
+#define SENSOR_NODE_TUPA1       4
+
 
 #define SENSOR_NODE             SENSOR_NODE_PIHA1
+
+#if (SENSOR_NODE == SENSOR_NODE_PIHA1)
+#define   __SENSOR__ ((char*)"Sensor PIHA1")
+#elif (SENSOR_NODE == SENSOR_NODE_RANTA)
+#define   __SENSOR__ ((char*)"Sensor RANTA")
+#elif (SENSOR_NODE == SENSOR_NODE_KHH)
+#define   __SENSOR__ ((char*)"Sensor KHH")
+#elif (SENSOR_NODE == SENSOR_NODE_TUPA1)
+#define   __SENSOR__ ((char*)"Sensor TUPA1")
+#else
+#define   __SENSOR__ ((char*)"Sensor Undefined")
+#endif
+
 
 typedef enum
 {

@@ -87,6 +87,10 @@ void io_initialize(void)
 void io_task_initialize(void)
 {
     io_ctrl.tindx =  atask_add_new(&io_th);
+    io_led_flash(LED_RED, BLINK_JITTER_1, 40);
+    io_led_flash(LED_YELLOW, BLINK_JITTER_2, 40);
+    io_led_flash(LED_BLUE, BLINK_JITTER_3, 40);
+
 }
 
 

@@ -18,19 +18,13 @@
 #include    "sensor.h"
 #include    "super.h"
 
-
-main_ctrl_st main_ctrl = {
-    .next_io_tick = 0,
-    .my_addr = "BTN1",
-};
-
 void modem_task(void);
 void print_debug_task(void){ atask_print_status(true); }
 
+ main_ctrl_st main_ctrl = {0};
 
 atask_st modem_handle              = {"Radio Modem    ", 100,0, 0, 255, 0, 1, modem_task};
 atask_st debug_th                  = {"Debug Task     ", 2000,    0,     0,  255,    0,  1,  print_debug_task };
-
 
 void setup() {
     io_initialize();
@@ -43,23 +37,16 @@ void setup() {
     Serial.print(__APP__); Serial.print(F(" Compiled: "));
     Serial.print(__DATE__); Serial.print(" ");
     Serial.print(__TIME__); Serial.println();
+    Serial.println(__SENSOR__);
 
     atask_initialize();
     io_task_initialize();
     super_initialize();
     r69_initialize();
     sensor_initialize();
-
-
 }
 
 void loop() {
     atask_run();
-
-    // char c = butt_read(&status);
-    // if(c != '.'){
-    //     Serial.printf("%c-%d\n",c, status);
-    // }
-
 }
 

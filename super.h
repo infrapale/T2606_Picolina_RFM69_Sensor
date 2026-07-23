@@ -2,7 +2,7 @@
 #define __SUPER_H__
 
 #define SUPER_WD_TIMEOUT            4000
-#define SUPER_HARAKIRI_TIMEOUT_SEC  3600
+#define SUPER_HARAKIRI_TIMEOUT_SEC  36000
 typedef enum
 {
     SUPER_CNTR_SENSOR = 0,
